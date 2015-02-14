@@ -5,7 +5,6 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/cheggaaa/pb"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/cookiejar"
@@ -166,20 +165,11 @@ func (s *scraper) GetAllAvailableLessons() ([]lesson, error) {
 		log.Fatal(err)
 	}
 	episodes = append(episodes, additionalEpisodes...)
-	resp, err := s.Client.Get(url)
-
-	if err != nil {
-		return nil, err
-	}
-
-	// Find all pagination pages
-	re := regexp.MustCompile(`(?s)(https://laracasts\.com/all\?page=\d)`)
-	defer resp.Body.Close()
-  contents, err := ioutil.ReadAll(resp.Body)
-	pages := re.FindAllString(string(contents), -1)
+	pages := [5]int{2, 3, 4, 5, 6}
 	uniquePages := []string{}
 	for _,page := range pages {
-		uniquePages = AppendIfMissing(uniquePages, page)
+		s := fmt.Sprintf("https://laracasts.com/all?page=%d", page)
+		uniquePages = AppendIfMissing(uniquePages, s)
 	}
 
 	for _,url := range uniquePages {
@@ -257,11 +247,12 @@ func (s *scraper) Login() error {
 	u := s.BaseURL + "/sessions"
 	resp, err := s.Client.PostForm(u,
 		url.Values{"_token": {token}, "email": {s.Username}, "password": {s.Password}})
-	defer resp.Body.Close()
-
+	
 	if err != nil {
 		return err
 	}
+
+	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("login return wrong status code: %v, expected %v. Is your username/password correct?",
@@ -284,7 +275,7 @@ func (s *scraper) DownloadLesson(lesson lesson) error {
 	}
 
 	defer resp.Body.Close()
-	
+
 	headers := resp.Header
 	filename, err := lesson.GetFilename(headers["Content-Type"][0])
 
