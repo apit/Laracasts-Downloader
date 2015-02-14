@@ -233,11 +233,30 @@ func (s *scraper) GetAvailableLessons(url string) ([]lesson, error) {
 	return episodes, nil
 }
 
+func (s *scraper) GetLoginToken() (string, error) {
+	u := s.BaseURL + "/login"
+	resp, err := s.Client.Get(u)
+	if err != nil {
+		return "", err
+	}
+
+	token := ""
+	doc, err := goquery.NewDocumentFromResponse(resp)
+	doc.Find("[type=hidden]").Each(func(i int, s *goquery.Selection) {
+		_token, _ := s.Attr("value")
+		token = _token
+	})
+
+	return token, nil
+}
+
 // Login to laracasts
 func (s *scraper) Login() error {
+	token, _ := s.GetLoginToken()
+
 	u := s.BaseURL + "/sessions"
 	resp, err := s.Client.PostForm(u,
-		url.Values{"email": {s.Username}, "password": {s.Password}})
+		url.Values{"_token": {token}, "email": {s.Username}, "password": {s.Password}})
 	defer resp.Body.Close()
 
 	if err != nil {
