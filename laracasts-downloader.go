@@ -277,13 +277,14 @@ func (s *scraper) DownloadLesson(lesson lesson) error {
 	path, basepath := "", ""
 
 	resp, err := s.Client.Get(url)
-	defer resp.Body.Close()
-
+	
 	if err != nil {
 		log.Println("Error while downloading", url, "-", err)
 		return nil
 	}
 
+	defer resp.Body.Close()
+	
 	headers := resp.Header
 	filename, err := lesson.GetFilename(headers["Content-Type"][0])
 
